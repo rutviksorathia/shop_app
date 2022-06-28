@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 class Product with ChangeNotifier {
   final String id;
@@ -9,16 +12,38 @@ class Product with ChangeNotifier {
   bool isFavorite;
 
   Product({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.price,
-    required this.imageUrl,
+    @required this.id,
+    @required this.title,
+    @required this.description,
+    @required this.price,
+    @required this.imageUrl,
     this.isFavorite = false,
   });
+  void _setFavvalue(bool newValue) {
+    isFavorite = newValue;
+    notifyListeners();
+  }
 
-  void toggleFavoriteStatus() {
+  Future<void> toggleFavoriteStatus() async {
+    final oldStatus = isFavorite;
     isFavorite = !isFavorite;
     notifyListeners();
+    final url = Uri.https('flutter-update-8daac-default-rtdb.firebaseio.com',
+        '/products/$id.json');
+    try {
+      final responce = await http.patch(
+        url,
+        body: json.encode(
+          {
+            'isFavorite': isFavorite,
+          },
+        ),
+      );
+      if (responce.statusCode >= 400) {
+        _setFavvalue(oldStatus);
+      }
+    } catch (error) {
+      _setFavvalue(oldStatus);
+    }
   }
 }
